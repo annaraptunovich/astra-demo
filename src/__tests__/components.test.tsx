@@ -5,6 +5,7 @@ import { Badge } from '../AstraLibraryKit/components/badge'
 import { SwitchField } from '../AstraLibraryKit/components/switch_field'
 import { Toast } from '../AstraLibraryKit/components/toast'
 import { TabItem, Tabs } from '../AstraLibraryKit/components/tabs'
+import { SegmentedControl, SegmentedControlItem } from '../AstraLibraryKit/components/segmented_control'
 import { cn } from '../AstraLibraryKit/components/utils'
 
 afterEach(cleanup)
@@ -177,5 +178,37 @@ describe('Tabs', () => {
     expect(screen.getByText('Shared tab content')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('tab', { name: /activity/i }))
     expect(screen.getByRole('tab', { name: /activity/i })).toHaveAttribute('aria-selected', 'true')
+  })
+})
+
+describe('SegmentedControl', () => {
+  it('supports the existing segments array API', () => {
+    const onChange = vi.fn()
+    render(
+      <SegmentedControl
+        segments={[
+          { id: 'preview', icon: <span>P</span> },
+          { id: 'timeline', icon: <span>T</span> },
+        ]}
+        selectedSegment="preview"
+        onChange={onChange}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('tab', { name: /t/i }))
+    expect(onChange).toHaveBeenCalledWith('timeline')
+  })
+
+  it('supports SegmentedControlItem children for slotted segments', () => {
+    render(
+      <SegmentedControl>
+        <SegmentedControlItem value="preview" icon={<span>P</span>} active />
+        <SegmentedControlItem value="timeline" icon={<span>T</span>} />
+      </SegmentedControl>
+    )
+
+    expect(screen.getByRole('tab', { name: /p/i })).toHaveAttribute('aria-selected', 'true')
+    fireEvent.click(screen.getByRole('tab', { name: /t/i }))
+    expect(screen.getByRole('tab', { name: /t/i })).toHaveAttribute('aria-selected', 'true')
   })
 })
