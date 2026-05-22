@@ -1,5 +1,5 @@
 import { cn } from './utils'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { PromptInput } from './prompt_input'
 import { Badge } from './badge'
 
@@ -9,6 +9,7 @@ interface Suggestion {
 }
 
 interface AIVideoCreationProps {
+  children?: ReactNode;
   value?: string;
   placeholder?: string;
   onChange?: (value: string) => void;
@@ -27,6 +28,7 @@ const DEFAULT_SUGGESTIONS: Suggestion[] = [
 ]
 
 export function AIVideoCreation({
+  children,
   value,
   placeholder,
   onChange,
@@ -38,6 +40,7 @@ export function AIVideoCreation({
   className,
 }: AIVideoCreationProps) {
   const [inputValue, setInputValue] = useState(value ?? '')
+  const hasSuggestionSlot = children !== undefined && children !== null
 
   const handleChange = (val: string) => {
     setInputValue(val)
@@ -69,7 +72,11 @@ export function AIVideoCreation({
         disabled={disabled}
         className="w-full"
       />
-      {suggestions.length > 0 && (
+      {hasSuggestionSlot ? (
+        <div className="flex flex-wrap gap-3 items-center">
+          {children}
+        </div>
+      ) : suggestions.length > 0 && (
         <div className="flex flex-wrap gap-3 items-center">
           {suggestions.map((suggestion) => (
             <button
