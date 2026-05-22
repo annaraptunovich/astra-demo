@@ -1,6 +1,7 @@
 import { cn } from './utils'
 import { ReactNode, useEffect, useCallback } from 'react'
 import { X } from './icons'
+import { ButtonGroup } from './button_group'
 
 interface ModalProps {
   isOpen: boolean;
@@ -76,8 +77,10 @@ export function Modal({
           {children}
         </div>
         {footer && (
-          <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-border-secondary">
-            {footer}
+          <div className="px-6 py-5 border-t border-border-secondary">
+            <ButtonGroup align="end">
+              {footer}
+            </ButtonGroup>
           </div>
         )}
       </div>
