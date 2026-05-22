@@ -1,9 +1,10 @@
 import { cn } from './utils'
 import { useState, InputHTMLAttributes } from 'react'
 
-interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type' | 'size'> {
+interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'checked' | 'defaultChecked' | 'onChange' | 'type' | 'size'> {
   label?: string;
   description?: string;
+  checked?: boolean;
   defaultChecked?: boolean;
   onChange?: (checked: boolean) => void;
   disabled?: boolean;
@@ -12,18 +13,21 @@ interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onC
 export function Checkbox({
   label,
   description,
+  checked: checkedProp,
   defaultChecked = false,
   onChange,
   disabled = false,
   className,
   ...props
 }: CheckboxProps) {
-  const [checked, setChecked] = useState(defaultChecked);
+  const isControlled = checkedProp !== undefined;
+  const [internalChecked, setInternalChecked] = useState(defaultChecked);
+  const checked = isControlled ? checkedProp : internalChecked;
 
   const handleChange = () => {
     if (disabled) return;
     const newChecked = !checked;
-    setChecked(newChecked);
+    if (!isControlled) setInternalChecked(newChecked);
     onChange?.(newChecked);
   };
 

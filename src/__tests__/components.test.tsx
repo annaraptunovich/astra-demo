@@ -3,6 +3,8 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { Button } from '../AstraLibraryKit/components/button'
 import { Badge } from '../AstraLibraryKit/components/badge'
 import { SwitchField } from '../AstraLibraryKit/components/switch_field'
+import { Checkbox } from '../AstraLibraryKit/components/checkbox'
+import { RadioField, RadioGroup } from '../AstraLibraryKit/components/radio'
 import { Toast } from '../AstraLibraryKit/components/toast'
 import { TabItem, Tabs } from '../AstraLibraryKit/components/tabs'
 import { SegmentedControl, SegmentedControlItem } from '../AstraLibraryKit/components/segmented_control'
@@ -103,18 +105,135 @@ describe('SwitchField', () => {
 
   it('toggles on click', () => {
     const onChange = vi.fn()
-    const { container } = render(<SwitchField label="Toggle" onChange={onChange} defaultSelected={false} />)
-    const switchBtn = container.querySelector('button')!
+    render(<SwitchField label="Toggle" onChange={onChange} defaultSelected={false} />)
+    const switchBtn = screen.getByRole('switch')
+    expect(switchBtn).toHaveAttribute('aria-checked', 'false')
+
     fireEvent.click(switchBtn)
     expect(onChange).toHaveBeenCalledWith(true)
+    expect(switchBtn).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('supports selected as controlled state', () => {
+    const onChange = vi.fn()
+    const { rerender } = render(<SwitchField label="Toggle" selected={false} onChange={onChange} />)
+
+    const switchBtn = screen.getByRole('switch')
+    expect(switchBtn).toHaveAttribute('aria-checked', 'false')
+
+    fireEvent.click(switchBtn)
+    expect(onChange).toHaveBeenCalledWith(true)
+    expect(switchBtn).toHaveAttribute('aria-checked', 'false')
+
+    rerender(<SwitchField label="Toggle" selected onChange={onChange} />)
+    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
   })
 
   it('does not toggle when disabled', () => {
     const onChange = vi.fn()
-    const { container } = render(<SwitchField label="Toggle" onChange={onChange} disabled />)
-    const switchBtn = container.querySelector('button')!
+    render(<SwitchField label="Toggle" onChange={onChange} disabled />)
+    const switchBtn = screen.getByRole('switch')
     fireEvent.click(switchBtn)
     expect(onChange).not.toHaveBeenCalled()
+  })
+})
+
+describe('Checkbox', () => {
+  it('supports defaultChecked as uncontrolled initial state', () => {
+    const onChange = vi.fn()
+    render(<Checkbox label="Include audio" defaultChecked onChange={onChange} />)
+
+    const checkbox = screen.getByRole('checkbox')
+    expect(checkbox).toHaveAttribute('aria-checked', 'true')
+
+    fireEvent.click(checkbox)
+    expect(onChange).toHaveBeenCalledWith(false)
+    expect(checkbox).toHaveAttribute('aria-checked', 'false')
+  })
+
+  it('supports checked as controlled state', () => {
+    const onChange = vi.fn()
+    const { rerender } = render(<Checkbox label="Include audio" checked={false} onChange={onChange} />)
+
+    const checkbox = screen.getByRole('checkbox')
+    expect(checkbox).toHaveAttribute('aria-checked', 'false')
+
+    fireEvent.click(checkbox)
+    expect(onChange).toHaveBeenCalledWith(true)
+    expect(checkbox).toHaveAttribute('aria-checked', 'false')
+
+    rerender(<Checkbox label="Include audio" checked onChange={onChange} />)
+    expect(screen.getByRole('checkbox')).toHaveAttribute('aria-checked', 'true')
+  })
+})
+
+describe('RadioField', () => {
+  it('supports selected as controlled state', () => {
+    const onChange = vi.fn()
+    const { rerender } = render(<RadioField value="email" label="Email" selected={false} onChange={onChange} />)
+
+    const radio = screen.getByRole('radio', { name: /email/i })
+    expect(radio).toHaveAttribute('aria-checked', 'false')
+
+    fireEvent.click(radio)
+    expect(onChange).toHaveBeenCalledWith(true)
+    expect(radio).toHaveAttribute('aria-checked', 'false')
+
+    rerender(<RadioField value="email" label="Email" selected onChange={onChange} />)
+    expect(screen.getByRole('radio', { name: /email/i })).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('supports defaultSelected as uncontrolled initial state', () => {
+    const onChange = vi.fn()
+    render(<RadioField value="email" label="Email" defaultSelected onChange={onChange} />)
+
+    const radio = screen.getByRole('radio', { name: /email/i })
+    expect(radio).toHaveAttribute('aria-checked', 'true')
+
+    fireEvent.click(radio)
+    expect(onChange).toHaveBeenCalledWith(true)
+    expect(radio).toHaveAttribute('aria-checked', 'true')
+  })
+})
+
+describe('RadioGroup', () => {
+  it('keeps the options array API working', () => {
+    const onChange = vi.fn()
+    render(
+      <RadioGroup
+        defaultValue="clips"
+        onChange={onChange}
+        options={[
+          { value: 'clips', label: 'Clips' },
+          { value: 'audio', label: 'Audio', description: 'Include audio stems' },
+        ]}
+      />
+    )
+
+    expect(screen.getByRole('radio', { name: /clips/i })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('radio', { name: /audio/i })).toHaveAttribute('aria-checked', 'false')
+
+    fireEvent.click(screen.getByRole('radio', { name: /audio/i }))
+    expect(onChange).toHaveBeenCalledWith('audio')
+    expect(screen.getByRole('radio', { name: /clips/i })).toHaveAttribute('aria-checked', 'false')
+    expect(screen.getByRole('radio', { name: /audio/i })).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('supports nested RadioField children', () => {
+    const onChange = vi.fn()
+    render(
+      <RadioGroup defaultValue="clips" onChange={onChange}>
+        <RadioField value="clips" label="Clips" />
+        <RadioField value="audio" label="Audio" description="Include audio stems" />
+      </RadioGroup>
+    )
+
+    expect(screen.getByRole('radio', { name: /clips/i })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('radio', { name: /audio/i })).toHaveAttribute('aria-checked', 'false')
+
+    fireEvent.click(screen.getByRole('radio', { name: /audio/i }))
+    expect(onChange).toHaveBeenCalledWith('audio')
+    expect(screen.getByRole('radio', { name: /audio/i })).toHaveAttribute('aria-checked', 'true')
   })
 })
 
