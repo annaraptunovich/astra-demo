@@ -6,6 +6,7 @@ interface SwitchFieldProps {
   description?: string;
   hasDescription?: boolean;
   showLabel?: boolean;
+  selected?: boolean;
   defaultSelected?: boolean;
   onChange?: (selected: boolean) => void;
   disabled?: boolean;
@@ -16,16 +17,19 @@ export function SwitchField({
   description = "Description",
   hasDescription = true,
   showLabel = true,
+  selected: selectedProp,
   defaultSelected = true,
   onChange,
   disabled = false
 }: SwitchFieldProps) {
-  const [selected, setSelected] = useState(defaultSelected);
+  const isControlled = selectedProp !== undefined;
+  const [internalSelected, setInternalSelected] = useState(defaultSelected);
+  const selected = isControlled ? selectedProp : internalSelected;
   
   const handleToggle = () => {
     if (disabled) return;
     const newSelected = !selected;
-    setSelected(newSelected);
+    if (!isControlled) setInternalSelected(newSelected);
     onChange?.(newSelected);
   };
 
@@ -49,6 +53,8 @@ export function SwitchField({
       
       {/* Switch toggle */}
       <button
+        role="switch"
+        aria-checked={selected}
         onClick={handleToggle}
         disabled={disabled}
         className={cn(
