@@ -4,6 +4,7 @@ import { Button } from '../AstraLibraryKit/components/button'
 import { Badge } from '../AstraLibraryKit/components/badge'
 import { SwitchField } from '../AstraLibraryKit/components/switch_field'
 import { Toast } from '../AstraLibraryKit/components/toast'
+import { TabItem, Tabs } from '../AstraLibraryKit/components/tabs'
 import { cn } from '../AstraLibraryKit/components/utils'
 
 afterEach(cleanup)
@@ -137,5 +138,44 @@ describe('Toast', () => {
     render(<Toast message="Working" onCancel={onCancel} />)
     fireEvent.click(screen.getByText('Cancel'))
     expect(onCancel).toHaveBeenCalledOnce()
+  })
+})
+
+describe('TabItem', () => {
+  it('renders label and active state', () => {
+    render(<TabItem label="Details" active />)
+    const tab = screen.getByRole('tab', { name: /details/i })
+    expect(tab).toHaveAttribute('aria-selected', 'true')
+    expect(tab.className).toContain('text-brand-primary')
+  })
+})
+
+describe('Tabs', () => {
+  it('switches active content', () => {
+    render(
+      <Tabs
+        tabs={[
+          { id: 'details', label: 'Details', content: <p>Details content</p> },
+          { id: 'activity', label: 'Activity', content: <p>Activity content</p> },
+        ]}
+      />
+    )
+
+    expect(screen.getByText('Details content')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: /activity/i }))
+    expect(screen.getByText('Activity content')).toBeInTheDocument()
+  })
+
+  it('supports TabItem children for slotted tab lists', () => {
+    render(
+      <Tabs content={<p>Shared tab content</p>}>
+        <TabItem label="Details" />
+        <TabItem label="Activity" />
+      </Tabs>
+    )
+
+    expect(screen.getByText('Shared tab content')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: /activity/i }))
+    expect(screen.getByRole('tab', { name: /activity/i })).toHaveAttribute('aria-selected', 'true')
   })
 })
