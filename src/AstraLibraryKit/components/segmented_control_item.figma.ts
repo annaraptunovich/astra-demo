@@ -12,14 +12,14 @@ const active = instance.getEnum('Active', {
 
 const icon = instance.getInstanceSwap('Icon')
 let iconCode
-if (icon?.type === 'INSTANCE' && icon.hasCodeConnect()) {
+if (icon?.type === 'INSTANCE') {
   iconCode = icon.executeTemplate().example
 }
 
 export default {
   example: figma.tsx`
     <SegmentedControlItem
-      ${iconCode ? figma.tsx`icon={${iconCode}}` : 'icon={<Circle size={20} />}'}
+      ${iconCode ? figma.tsx`icon={${iconCode}}` : 'icon={<Circle size={20} strokeWidth={1.5} />}'}
       ${active ? 'active' : ''}
     />
   `,
