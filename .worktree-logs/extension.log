@@ -1,0 +1,8 @@
+[2026-05-22T17:24:38.296Z] [activate] workspace mode: hub
+[2026-05-22T17:24:38.297Z] [activate] hub mode — auto-showing sidebar
+[2026-05-22T17:24:38.304Z] [perf] webview HTML set in 5ms
+[2026-05-22T17:24:39.515Z] [perf] webview ready received
+[2026-05-22T17:24:39.515Z] [perf] skipping init/sendData (embedded in HTML)
+[2026-05-22T17:24:39.518Z] [perf] ready handler total: 3ms
+[2026-05-22T17:24:41.314Z] [update-check] buildVersion=1.0.3 latestTag=1.0.3
+[2026-05-22T17:24:43.994Z] [perf] runDoctor: 4479ms
