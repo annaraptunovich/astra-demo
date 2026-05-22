@@ -1,5 +1,14 @@
 import { cn } from './utils'
-import { ReactNode, useState } from 'react'
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  type ButtonHTMLAttributes,
+  type MouseEvent,
+  type ReactElement,
+  type ReactNode,
+  useState
+} from 'react'
 
 interface Tab {
   id: string;
@@ -8,53 +17,120 @@ interface Tab {
 }
 
 interface TabsProps {
-  tabs: Tab[];
+  tabs?: Tab[];
   defaultTab?: string;
+  content?: ReactNode;
   onChange?: (tabId: string) => void;
   className?: string;
+  children?: ReactNode;
+}
+
+interface TabItemProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
+  label: string;
+  active?: boolean;
+  className?: string;
+}
+
+export function TabItem({
+  label,
+  active = false,
+  className,
+  ...rest
+}: TabItemProps) {
+  return (
+    <button
+      role="tab"
+      aria-selected={active}
+      className={cn(
+        'px-4 py-2.5 text-label-sm font-medium transition-colors relative',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-inset',
+        active
+          ? 'text-brand-primary'
+          : 'text-text-secondary hover:text-text-primary',
+        className
+      )}
+      {...rest}
+    >
+      {label}
+      {active && (
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
+      )}
+    </button>
+  );
+}
+
+function toTabId(label: string) {
+  return label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'tab';
+}
+
+function isTabItemElement(child: ReactNode): child is ReactElement<TabItemProps> {
+  return isValidElement<TabItemProps>(child);
 }
 
 export function Tabs({
   tabs,
   defaultTab,
+  content,
   onChange,
-  className
+  className,
+  children
 }: TabsProps) {
-  const [activeTab, setActiveTab] = useState(defaultTab || tabs[0]?.id || '');
+  const tabItems = Children.toArray(children).filter(isTabItemElement);
+  const childTabs = tabItems.map((child) => ({
+    id: typeof child.props.value === 'string' && child.props.value.length > 0
+      ? child.props.value
+      : toTabId(child.props.label),
+    label: child.props.label,
+    content,
+  }));
+  const resolvedTabs = tabs ?? childTabs;
+  const firstActiveChild = tabItems.find((child) => child.props.active);
+  const firstActiveChildId = firstActiveChild
+    ? typeof firstActiveChild.props.value === 'string' && firstActiveChild.props.value.length > 0
+      ? firstActiveChild.props.value
+      : toTabId(firstActiveChild.props.label)
+    : undefined;
+  const [activeTab, setActiveTab] = useState(defaultTab || firstActiveChildId || resolvedTabs[0]?.id || '');
 
   const handleSelect = (tabId: string) => {
     setActiveTab(tabId);
     onChange?.(tabId);
   };
 
-  const activeContent = tabs.find(t => t.id === activeTab)?.content;
+  const activeContent = resolvedTabs.find(t => t.id === activeTab)?.content;
 
   return (
     <div className={cn('flex flex-col', className)}>
       <div role="tablist" className="flex border-b border-border-secondary">
-        {tabs.map((tab) => {
+        {tabs ? tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
-            <button
+            <TabItem
               key={tab.id}
-              role="tab"
-              aria-selected={isActive}
+              label={tab.label}
+              active={isActive}
               aria-controls={`tabpanel-${tab.id}`}
               onClick={() => handleSelect(tab.id)}
-              className={cn(
-                'px-4 py-2.5 text-label-sm font-medium transition-colors relative',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-inset',
-                isActive
-                  ? 'text-brand-primary'
-                  : 'text-text-secondary hover:text-text-primary'
-              )}
-            >
-              {tab.label}
-              {isActive && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
-              )}
-            </button>
+            />
           );
+        }) : tabItems.map((child) => {
+          const tabId = typeof child.props.value === 'string' && child.props.value.length > 0
+            ? child.props.value
+            : toTabId(child.props.label);
+          const isActive = activeTab === tabId;
+          const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+            child.props.onClick?.(event);
+            if (!event.defaultPrevented) {
+              handleSelect(tabId);
+            }
+          };
+
+          return cloneElement(child, {
+            key: child.key ?? tabId,
+            active: isActive,
+            'aria-controls': `tabpanel-${tabId}`,
+            onClick: handleClick,
+          });
         })}
       </div>
       <div
