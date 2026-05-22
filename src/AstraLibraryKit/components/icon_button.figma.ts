@@ -36,10 +36,13 @@ export default {
       variant="${variant}"
       size="${size}"
       ${disabled ? 'disabled' : ''}
-      ${iconCode ? figma.tsx`icon={${iconCode}}` : 'icon={<Star />}'}
+      ${iconCode ? figma.tsx`icon={${iconCode}}` : 'icon={<Star size={20} strokeWidth={1.5} />}'}
     />
   `,
-  imports: ['import { IconButton, Star } from "@/index"'],
+  imports: [
+    'import { IconButton } from "@/index"',
+    'import { Star } from "lucide-react"',
+  ],
   id: 'icon-button',
   metadata: {
     nestable: true,
