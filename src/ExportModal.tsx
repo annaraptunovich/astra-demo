@@ -12,12 +12,13 @@ import {
   XCircle,
   RefreshCw,
   Check,
+  Mail,
+  Twitter,
+  Link2,
 } from 'lucide-react'
 import { ItemSelect } from './AstraLibraryKit/components/item_select'
 import { Button } from './AstraLibraryKit/components/button'
 import { SelectField } from './AstraLibraryKit/components/select_field'
-import { InputField } from './AstraLibraryKit/components/input_field'
-import { Checkbox } from './AstraLibraryKit/components/checkbox'
 import { cn } from './AstraLibraryKit/components/utils'
 
 export type Resolution = '720p' | '1080p' | '4K'
@@ -97,10 +98,8 @@ const SIZE_PER_MINUTE_MB: Record<Resolution, number> = {
 
 const ANIMATION_MS = 200
 
-const INITIAL_FILE_NAME = 'ca-outdoors-v01'
-const INITIAL_EXPORT_TYPE = 'single'
-const INITIAL_FILE_TYPE = 'mp4'
-const INITIAL_VIDEO_SIZE = '1920x1080'
+const INITIAL_ACCESS = 'anyone-view'
+const INITIAL_EXPIRES = 'never'
 
 const PROGRESS_DURATION_MS = 5000
 const QUEUE_WAIT_MS = 1500
@@ -259,10 +258,8 @@ export function ExportModal({
   onExportComplete,
 }: ExportModalProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [fileName, setFileName] = useState(INITIAL_FILE_NAME)
-  const [exportType, setExportType] = useState(INITIAL_EXPORT_TYPE)
-  const [fileType, setFileType] = useState(INITIAL_FILE_TYPE)
-  const [videoSize, setVideoSize] = useState(INITIAL_VIDEO_SIZE)
+  const [access, setAccess] = useState(INITIAL_ACCESS)
+  const [expires, setExpires] = useState(INITIAL_EXPIRES)
   const [mounted, setMounted] = useState(isOpen)
   const [shown, setShown] = useState(false)
 
@@ -291,13 +288,13 @@ export function ExportModal({
       validateExport({
         items,
         selected,
-        fileName,
-        fileType,
-        videoSize,
+        fileName: 'share',
+        fileType: 'link',
+        videoSize: '1920x1080',
         account,
         existingFiles,
       }),
-    [items, selected, fileName, fileType, videoSize, account, existingFiles],
+    [items, selected, account, existingFiles],
   )
 
   const clearExportTimers = useCallback(() => {
@@ -405,10 +402,8 @@ export function ExportModal({
 
   function resetAll() {
     setSelected(new Set())
-    setFileName(INITIAL_FILE_NAME)
-    setExportType(INITIAL_EXPORT_TYPE)
-    setFileType(INITIAL_FILE_TYPE)
-    setVideoSize(INITIAL_VIDEO_SIZE)
+    setAccess(INITIAL_ACCESS)
+    setExpires(INITIAL_EXPIRES)
     setPhase('idle')
     setVisiblePhase('idle')
     setContentShown(true)
@@ -449,7 +444,7 @@ export function ExportModal({
     outcomeRef.current = computeOutcome({
       totalSizeMB: validation.totalSizeMB,
       env,
-      exportType,
+      exportType: 'single',
       selectedItems: validation.selectedItems,
     })
 
@@ -618,7 +613,7 @@ export function ExportModal({
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Export"
+          aria-label="Share"
           style={{ height: measuredHeight != null ? `${measuredHeight}px` : undefined }}
           className={cn(
             'export-token-drift',
@@ -640,22 +635,11 @@ export function ExportModal({
                 selected={selected}
                 onToggle={toggle}
                 onSelectAll={selectAll}
-                fileName={fileName}
-                onFileName={(v) => {
-                  setFileName(v)
-                  setOverwriteConfirmed(false)
-                }}
-                exportType={exportType}
-                onExportType={setExportType}
-                fileType={fileType}
-                onFileType={(v) => {
-                  setFileType(v)
-                  setOverwriteConfirmed(false)
-                }}
-                videoSize={videoSize}
-                onVideoSize={setVideoSize}
+                access={access}
+                onAccess={setAccess}
+                expires={expires}
+                onExpires={setExpires}
                 validation={validation}
-                account={account}
                 onClose={onClose}
                 onExport={beginExportFlow}
               />
@@ -841,16 +825,11 @@ interface IdleContentProps {
   selected: Set<string>
   onToggle: (id: string) => void
   onSelectAll: () => void
-  fileName: string
-  onFileName: (v: string) => void
-  exportType: string
-  onExportType: (v: string) => void
-  fileType: string
-  onFileType: (v: string) => void
-  videoSize: string
-  onVideoSize: (v: string) => void
+  access: string
+  onAccess: (v: string) => void
+  expires: string
+  onExpires: (v: string) => void
   validation: Validation
-  account: AccountState
   onClose: () => void
   onExport: () => void
 }
@@ -861,45 +840,19 @@ function IdleContent({
   selected,
   onToggle,
   onSelectAll,
-  fileName,
-  onFileName,
-  exportType,
-  onExportType,
-  fileType,
-  onFileType,
-  videoSize,
-  onVideoSize,
+  access,
+  onAccess,
+  expires,
+  onExpires,
   validation,
-  account,
   onClose,
   onExport,
 }: IdleContentProps) {
   const statusLine = (() => {
-    if (validation.blockers.includes('plan-limit')) {
-      const used = Math.round(account.exportMinutesUsed)
-      return {
-        tone: 'danger' as const,
-        text: `Plan limit reached — ${used} of ${account.exportMinutesLimit} min used`,
-      }
-    }
-    if (validation.blockers.includes('source-missing')) {
-      const missing = validation.selectedItems.filter((i) => !i.sourceAvailable).length
-      return {
-        tone: 'danger' as const,
-        text: `${missing} selected ${missing === 1 ? 'item is' : 'items are'} missing source files`,
-      }
-    }
-    if (validation.warnings.includes('mixed-resolution')) {
-      const list = validation.uniqueResolutions.join(', ')
-      return {
-        tone: 'warning' as const,
-        text: `${list} will be scaled to ${validation.outputResolution}`,
-      }
-    }
     if (validation.selectedItems.length > 0) {
       return {
         tone: 'muted' as const,
-        text: `${validation.selectedItems.length} items selected · ${formatMinutes(validation.totalDurationSeconds)} · ~${formatMB(validation.totalSizeMB)}`,
+        text: `${validation.selectedItems.length} ${validation.selectedItems.length === 1 ? 'item' : 'items'} selected`,
       }
     }
     return {
@@ -918,7 +871,7 @@ function IdleContent({
           : 'opacity-0 translate-y-3 ease-in',
       )}
     >
-      <PhaseHeader title="Export" onClose={onClose} />
+      <PhaseHeader title="Share" onClose={onClose} />
 
       <div className="flex gap-4 flex-1 min-h-0">
         <div className="flex-1 overflow-y-auto min-w-0 pr-1 [scrollbar-width:thin]">
@@ -959,52 +912,57 @@ function IdleContent({
         </div>
 
         <div className="w-[320px] shrink-0 bg-bg-faint border border-border-secondary rounded-2xl p-6 flex flex-col gap-6 overflow-y-auto">
-          <p className="text-heading text-text-primary">Settings</p>
+          <p className="text-heading text-text-primary">Share settings</p>
+          <div className="flex flex-col gap-1.5">
+            <p className="text-label-sm text-text-primary">Shareable link</p>
+            <div className="flex gap-1.5 items-center">
+              <div className="flex-1 min-w-0 bg-input-bg border border-border-primary rounded-lg px-3 py-2.5">
+                <p className="text-input-sm text-text-primary truncate">
+                  {`https://astra.video/share/${(validation.selectedItems[0]?.title ?? items[0]?.title ?? 'video').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-v1`}
+                </p>
+              </div>
+              <button className="text-brand-primary text-[16px] cursor-pointer hover:opacity-70 transition-opacity shrink-0">
+                Copy link
+              </button>
+            </div>
+          </div>
           <SelectField
-            label="Export type"
-            value={exportType}
-            onChange={onExportType}
+            label="Access"
+            value={access}
+            onChange={onAccess}
             options={[
-              { value: 'single', label: 'Single file' },
-              { value: 'separate', label: 'Separate files' },
+              { value: 'anyone-view', label: 'Anyone with the link can view' },
+              { value: 'restricted', label: 'Restricted' },
+            ]}
+          />
+          <SelectField
+            label="Expires"
+            value={expires}
+            onChange={onExpires}
+            options={[
+              { value: 'never', label: 'Never' },
+              { value: '7d', label: '7 days' },
+              { value: '30d', label: '30 days' },
             ]}
           />
           <div className="flex flex-col gap-1.5">
-            <InputField label="File name" value={fileName} onChange={onFileName} />
-            {validation.warnings.includes('filename-collision') && (
-              <p className="text-[12px] text-[#b88600] flex items-center gap-1">
-                <AlertTriangle size={12} />
-                Already exists — will overwrite
-              </p>
-            )}
-            {validation.blockers.includes('no-filename') && (
-              <p className="text-[12px] text-danger flex items-center gap-1">
-                <CircleAlert size={12} />
-                File name is required
-              </p>
-            )}
+            <p className="text-label-sm text-text-primary">Share via</p>
+            <div className="flex gap-2 items-center">
+              {([
+                { icon: <Mail size={20} />, label: 'Email' },
+                { icon: <Twitter size={20} />, label: 'Twitter' },
+                { icon: <Link2 size={20} />, label: 'Copy link' },
+              ] as const).map(({ icon, label }) => (
+                <button
+                  key={label}
+                  aria-label={label}
+                  className="size-10 bg-input-bg border border-border-primary rounded-lg flex items-center justify-center cursor-pointer hover:opacity-70 transition-opacity text-text-primary"
+                >
+                  {icon}
+                </button>
+              ))}
+            </div>
           </div>
-          <SelectField
-            label="File type"
-            value={fileType}
-            onChange={onFileType}
-            options={[
-              { value: 'mp4', label: 'MP4' },
-              { value: 'mov', label: 'MOV' },
-              { value: 'webm', label: 'WebM' },
-            ]}
-          />
-          <SelectField
-            label="Video size"
-            value={videoSize}
-            onChange={onVideoSize}
-            options={[
-              { value: '3840x2160', label: '3840x2160' },
-              { value: '1920x1080', label: '1920x1080' },
-              { value: '1280x720', label: '1280x720' },
-            ]}
-          />
-          <Checkbox label="Include audio" defaultChecked />
         </div>
       </div>
 
@@ -1031,11 +989,11 @@ function IdleContent({
         </div>
         <Button
           variant="primary"
-          iconEnd={<Download size={16} />}
+          iconEnd={<Link2 size={16} />}
           onClick={onExport}
           disabled={!validation.canExport}
         >
-          Export
+          Copy link
         </Button>
       </div>
     </div>
@@ -1103,7 +1061,7 @@ function QueuedContent({
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-brand-primary/40 to-transparent animate-[shimmer_1.6s_ease-in-out_infinite]" />
         </div>
         <div className="flex items-center justify-between text-[12px] leading-[1.5] text-text-secondary w-full">
-          <p>Waiting in queue (1 ahead)…</p>
+          <p>Waiting in queue (1 ahead)&hellip;</p>
           <button
             onClick={onCancel}
             className="text-text-secondary hover:text-text-primary cursor-pointer"
@@ -1464,7 +1422,7 @@ function SuccessContent({
                 'filename-collapse 700ms 1000ms cubic-bezier(0.22, 1, 0.36, 1) both',
             }}
           >
-            {filename} · {formatMB(sizeMB)}
+            {filename} &middot; {formatMB(sizeMB)}
           </p>
         </div>
       </div>
